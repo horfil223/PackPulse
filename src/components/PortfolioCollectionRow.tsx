@@ -7,13 +7,6 @@ function formatTon(value: number | null) {
   return value.toLocaleString('ru-RU', { maximumFractionDigits: 3 })
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return '—'
-  const t = Date.parse(value)
-  if (!Number.isFinite(t)) return '—'
-  return new Date(t).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })
-}
-
 export function PortfolioCollectionRow({ c }: { c: PortfolioCollection }) {
   const title = c.displayName ?? c.sampleName ?? 'Коллекция'
   
