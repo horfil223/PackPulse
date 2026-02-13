@@ -379,26 +379,10 @@ app.get('/api/health', (req, res) => {
 })
 
 app.get('/tonconnect-manifest.json', (req, res) => {
-  // Try to determine the frontend origin dynamically
-  // Priority: Query param -> X-Forwarded-Host (from Vite proxy) -> Host header
-  let origin = ''
-  
-  const queryOrigin = String(req.query.origin || '').trim()
-  if (queryOrigin) {
-    try {
-      const u = new URL(queryOrigin)
-      if (u.protocol === 'http:' || u.protocol === 'https:') {
-        origin = u.origin
-      }
-    } catch {}
-  }
-
-  if (!origin) {
-    const forwardedHost = req.headers['x-forwarded-host']
-    const host = forwardedHost ? (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) : req.headers.host
-    const proto = req.headers['x-forwarded-proto'] ? (Array.isArray(req.headers['x-forwarded-proto']) ? req.headers['x-forwarded-proto'][0] : req.headers['x-forwarded-proto']) : 'http'
-    origin = `${proto}://${host ?? 'localhost:5173'}`
-  }
+  // Use HOST header to determine the correct domain (works for localhost, Koyeb, Render, etc)
+  const host = req.headers.host || 'localhost:3002'
+  const protocol = req.headers['x-forwarded-proto'] || 'http'
+  const origin = `${protocol}://${host}`
 
   res.json({
     url: origin,
