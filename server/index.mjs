@@ -385,11 +385,9 @@ app.use((req, res, next) => {
   next()
 })
 
+// Serve manifest directly at root for easier access
 app.get('/tonconnect-manifest.json', (req, res) => {
-  // Use HOST header to determine the correct domain
   const host = req.headers.host || 'localhost:3002'
-  // Trust X-Forwarded-Proto from proxies (Koyeb/Render/Cloudflare)
-  // Default to https in production environments if uncertain
   const isLocal = host.includes('localhost') || host.includes('127.0.0.1')
   const protocol = req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https')
   const origin = `${protocol}://${host}`
