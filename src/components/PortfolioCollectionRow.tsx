@@ -36,16 +36,16 @@ export function PortfolioCollectionRow({ c }: { c: PortfolioCollection }) {
       <td className="py-3 px-3 text-center align-middle text-sm text-zinc-300">
         <span className="bg-zinc-800/50 px-2 py-1 rounded text-xs">{c.count}</span>
       </td>
-      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-zinc-300">
+      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-zinc-300 whitespace-nowrap">
         {formatTon(c.floorTon)}
       </td>
-      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-zinc-300">
+      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-zinc-300 whitespace-nowrap hidden sm:table-cell">
         {formatTon(c.medianSoldTon ?? c.avgSoldTon)}
       </td>
-      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-blue-300/80">
+      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-blue-300/80 whitespace-nowrap hidden md:table-cell">
         {formatTon(c.valueFloorTon)}
       </td>
-      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-purple-300/80">
+      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-purple-300/80 whitespace-nowrap hidden lg:table-cell">
         {formatTon(c.valueMedianSoldTon ?? c.valueAvgSoldTon)}
       </td>
       <td className="py-3 pl-3 pr-4 text-right align-middle">

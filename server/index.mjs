@@ -378,10 +378,20 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true })
 })
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'GET,OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Content-Type')
+  next()
+})
+
 app.get('/tonconnect-manifest.json', (req, res) => {
-  // Use HOST header to determine the correct domain (works for localhost, Koyeb, Render, etc)
+  // Use HOST header to determine the correct domain
   const host = req.headers.host || 'localhost:3002'
-  const protocol = req.headers['x-forwarded-proto'] || 'http'
+  // Trust X-Forwarded-Proto from proxies (Koyeb/Render/Cloudflare)
+  // Default to https in production environments if uncertain
+  const isLocal = host.includes('localhost') || host.includes('127.0.0.1')
+  const protocol = req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https')
   const origin = `${protocol}://${host}`
 
   res.json({

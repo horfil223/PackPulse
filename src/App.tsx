@@ -151,38 +151,40 @@ export default function App() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-white/20">
       <div className="container mx-auto px-4 py-12 max-w-6xl">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-          <div className="text-left">
-            <h1 className="text-4xl font-bold text-white tracking-tight mb-2">
+        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+          <div className="text-center md:text-left w-full md:w-auto">
+            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-2">
               PackPulse
             </h1>
-            <div className="text-zinc-400 text-base font-light">
+            <div className="text-zinc-400 text-sm md:text-base font-light">
               {tab === 'market'
                 ? 'Рыночный сканер стикеров'
                 : 'Ваш портфель коллекций'}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <TonConnectButton />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto justify-center">
+            <div className="w-full sm:w-auto flex justify-center">
+               <TonConnectButton />
+            </div>
             <button
               type="button"
               onClick={tab === 'market' ? loadMarket : loadPortfolio}
               disabled={(tab === 'portfolio' && !connected) || loading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white text-black hover:bg-gray-200 disabled:bg-zinc-800 disabled:text-zinc-500 rounded-lg font-medium transition-all active:scale-95"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-black hover:bg-gray-200 disabled:bg-zinc-800 disabled:text-zinc-500 rounded-lg font-medium transition-all active:scale-95"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Обновить
+              <span>Обновить</span>
             </button>
           </div>
         </header>
 
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex p-1 bg-zinc-900 rounded-lg">
+        <div className="mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex p-1 bg-zinc-900 rounded-lg w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setTab('market')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-6 py-2 rounded-md text-sm font-medium transition-all ${
                 tab === 'market' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -191,7 +193,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setTab('portfolio')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-6 py-2 rounded-md text-sm font-medium transition-all ${
                 tab === 'portfolio' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -246,12 +248,12 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 mb-8">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col lg:flex-row gap-4 mb-8">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0">
                 <button
                   type="button"
                   onClick={() => setMarketMode('active')}
-                  className={`px-4 py-2.5 rounded-lg border text-sm transition-colors ${
+                  className={`px-4 py-2.5 rounded-lg border text-sm whitespace-nowrap transition-colors ${
                     marketMode === 'active'
                       ? 'bg-zinc-100 border-zinc-100 text-black font-medium'
                       : 'bg-transparent border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300'
@@ -262,7 +264,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setMarketMode('full')}
-                  className={`px-4 py-2.5 rounded-lg border text-sm transition-colors ${
+                  className={`px-4 py-2.5 rounded-lg border text-sm whitespace-nowrap transition-colors ${
                     marketMode === 'full'
                       ? 'bg-zinc-100 border-zinc-100 text-black font-medium'
                       : 'bg-transparent border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300'
@@ -275,57 +277,63 @@ export default function App() {
                     type="button"
                     onClick={scanMarket}
                     disabled={scanning}
-                    className="px-4 py-2.5 rounded-lg border border-zinc-800 text-zinc-300 hover:bg-zinc-900 text-sm transition-colors"
+                    className="px-4 py-2.5 rounded-lg border border-zinc-800 text-zinc-300 hover:bg-zinc-900 text-sm whitespace-nowrap transition-colors"
                   >
                     {scanning ? 'Сканирую…' : 'Сканировать'}
                   </button>
                 )}
               </div>
-              <div className="flex-1">
-                <input
-                  value={marketQuery}
-                  onChange={(e) => setMarketQuery(e.target.value)}
-                  placeholder="Поиск..."
-                  className="w-full rounded-lg bg-zinc-900/50 border border-zinc-800 px-4 py-2.5 outline-none focus:border-zinc-600 text-sm text-white placeholder:text-zinc-600 transition-colors"
-                />
-              </div>
-              <select
-                value={marketSort}
-                onChange={(e) => setMarketSort(e.target.value as any)}
-                className="rounded-lg bg-zinc-900/50 border border-zinc-800 px-4 py-2.5 outline-none focus:border-zinc-600 text-sm text-zinc-300 cursor-pointer"
-              >
-                <option value="floor_desc">Floor Price ↓</option>
-                <option value="median_desc">Median Sold ↓</option>
-                <option value="sales_desc">Кол-во продаж ↓</option>
-                <option value="name_asc">Название (А-Я)</option>
-              </select>
               
-              <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
+              <div className="flex flex-col sm:flex-row gap-4 flex-1">
+                <div className="flex-1">
+                    <input
+                    value={marketQuery}
+                    onChange={(e) => setMarketQuery(e.target.value)}
+                    placeholder="Поиск..."
+                    className="w-full rounded-lg bg-zinc-900/50 border border-zinc-800 px-4 py-2.5 outline-none focus:border-zinc-600 text-sm text-white placeholder:text-zinc-600 transition-colors"
+                    />
+                </div>
+                
+                <div className="flex gap-2">
+                    <select
+                        value={marketSort}
+                        onChange={(e) => setMarketSort(e.target.value as any)}
+                        className="flex-1 sm:flex-none rounded-lg bg-zinc-900/50 border border-zinc-800 px-4 py-2.5 outline-none focus:border-zinc-600 text-sm text-zinc-300 cursor-pointer"
+                    >
+                        <option value="floor_desc">Floor ↓</option>
+                        <option value="median_desc">Median ↓</option>
+                        <option value="sales_desc">Продаж ↓</option>
+                        <option value="name_asc">А-Я</option>
+                    </select>
+                    
+                    <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-1 shrink-0">
+                        <button
+                        type="button"
+                        onClick={() => setViewMode('grid')}
+                        className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        >
+                        <LayoutGrid className="w-5 h-5" />
+                        </button>
+                        <button
+                        type="button"
+                        onClick={() => setViewMode('list')}
+                        className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        >
+                        <List className="w-5 h-5" />
+                        </button>
+                    </div>
 
-              <button
-                type="button"
-                onClick={() => setOnlyFavorites((v) => !v)}
-                className={`rounded-lg border px-4 py-2.5 text-sm transition-colors ${
-                  onlyFavorites ? 'bg-zinc-100 border-zinc-100 text-black' : 'bg-transparent border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                }`}
-              >
-                Избранное
-              </button>
+                    <button
+                        type="button"
+                        onClick={() => setOnlyFavorites((v) => !v)}
+                        className={`rounded-lg border px-4 py-2.5 text-sm whitespace-nowrap transition-colors ${
+                        onlyFavorites ? 'bg-zinc-100 border-zinc-100 text-black' : 'bg-transparent border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                        }`}
+                    >
+                        ★
+                    </button>
+                </div>
+              </div>
             </div>
 
             {!market && loading && (
@@ -365,9 +373,9 @@ export default function App() {
                           <th className="py-3 pl-4 pr-3 font-medium w-10">★</th>
                           <th className="py-3 px-3 font-medium">Коллекция</th>
                           <th className="py-3 px-3 font-medium text-right cursor-pointer hover:text-white transition-colors" onClick={() => setMarketSort('floor_desc')}>Floor</th>
-                          <th className="py-3 px-3 font-medium text-right cursor-pointer hover:text-white transition-colors" onClick={() => setMarketSort('median_desc')}>Median</th>
+                          <th className="py-3 px-3 font-medium text-right cursor-pointer hover:text-white transition-colors hidden sm:table-cell" onClick={() => setMarketSort('median_desc')}>Median</th>
                           <th className="py-3 px-3 font-medium text-right cursor-pointer hover:text-white transition-colors" onClick={() => setMarketSort('sales_desc')}>Продаж</th>
-                          <th className="py-3 px-3 font-medium text-right">Посл. сделка</th>
+                          <th className="py-3 px-3 font-medium text-right hidden md:table-cell">Посл. сделка</th>
                           <th className="py-3 pl-3 pr-4 font-medium text-right"></th>
                         </tr>
                       </thead>
@@ -463,9 +471,9 @@ export default function App() {
                           <th className="py-3 pl-4 px-3 font-medium">Коллекция</th>
                           <th className="py-3 px-3 font-medium text-center">Шт</th>
                           <th className="py-3 px-3 font-medium text-right">Floor</th>
-                          <th className="py-3 px-3 font-medium text-right">Median</th>
-                          <th className="py-3 px-3 font-medium text-right">Val (Floor)</th>
-                          <th className="py-3 px-3 font-medium text-right">Val (Median)</th>
+                          <th className="py-3 px-3 font-medium text-right hidden sm:table-cell">Median</th>
+                          <th className="py-3 px-3 font-medium text-right hidden md:table-cell">Val (Floor)</th>
+                          <th className="py-3 px-3 font-medium text-right hidden lg:table-cell">Val (Median)</th>
                           <th className="py-3 pl-3 pr-4 font-medium text-right"></th>
                         </tr>
                       </thead>

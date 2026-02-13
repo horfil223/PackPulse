@@ -71,17 +71,17 @@ export function MarketStickerpackRow({
           </div>
         </div>
       </td>
-      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-zinc-300">
+      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-zinc-300 whitespace-nowrap">
         {formatTon(c.floorTon)}
       </td>
-      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-zinc-300">
+      <td className="py-3 px-3 text-right align-middle text-sm font-medium text-zinc-300 whitespace-nowrap hidden sm:table-cell">
         {formatTon(c.medianSoldTon ?? null)}
       </td>
-      <td className="py-3 px-3 text-right align-middle text-sm text-zinc-400">
+      <td className="py-3 px-3 text-right align-middle text-sm text-zinc-400 whitespace-nowrap">
         {typeof c.salesCount === 'number' ? c.salesCount : '—'}
         {period && <div className="text-[10px] text-zinc-600">за {period}</div>}
       </td>
-      <td className="py-3 px-3 text-right align-middle text-sm text-zinc-400">
+      <td className="py-3 px-3 text-right align-middle text-sm text-zinc-400 whitespace-nowrap hidden md:table-cell">
         {formatDate(c.lastSoldAt)}
       </td>
       <td className="py-3 pl-3 pr-4 text-right align-middle">
