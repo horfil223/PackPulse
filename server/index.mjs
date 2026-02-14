@@ -36,26 +36,31 @@ app.use((req, res, next) => {
   next()
 })
 
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, '../dist')))
+
 // Serve manifest directly at root for easier access
 // Updated: Force HTTPS for cloud hosting to prevent 404
 app.get('/tonconnect-manifest.json', (req, res) => {
-  console.log('[DEBUG] Manifest requested')
-  console.log('Headers:', JSON.stringify(req.headers, null, 2))
+  // If we have a static file, we should serve it. 
+  // But since we want dynamic origin, we keep this handler.
+  // HOWEVER, the 404 might be because the static middleware above is not finding it 
+  // OR this handler is not working correctly with the wallet.
+  
+  // Let's try to serve the static file if it exists, otherwise generate dynamic
+  // Actually, let's just use the dynamic one but make it super simple and robust.
   
   const host = req.headers.host || 'localhost:3002'
   
   // Force HTTPS for production domains if protocol detection fails
-  // This fixes the issue where Koyeb might report http but the wallet needs https
   let protocol = 'https'
   if (host.includes('localhost') || host.includes('127.0.0.1')) {
     protocol = 'http'
   } else {
-    // Check headers but trust our hardcoded rule for cloud platforms first
     const forwardedProto = req.headers['x-forwarded-proto']
     if (forwardedProto && typeof forwardedProto === 'string') {
        protocol = forwardedProto
     }
-    // Override: always https for koyeb/render
     if (host.includes('koyeb.app') || host.includes('onrender.com')) {
       protocol = 'https'
     }
@@ -71,7 +76,6 @@ app.get('/tonconnect-manifest.json', (req, res) => {
     privacyPolicyUrl: origin,
   }
   
-  console.log('[DEBUG] Serving manifest:', JSON.stringify(manifest, null, 2))
   res.json(manifest)
 })
 
