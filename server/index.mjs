@@ -387,18 +387,24 @@ app.use((req, res, next) => {
 
 // Serve manifest directly at root for easier access
 app.get('/tonconnect-manifest.json', (req, res) => {
+  console.log('[DEBUG] Manifest requested')
+  console.log('Headers:', JSON.stringify(req.headers, null, 2))
+  
   const host = req.headers.host || 'localhost:3002'
   const isLocal = host.includes('localhost') || host.includes('127.0.0.1')
   const protocol = req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https')
   const origin = `${protocol}://${host}`
 
-  res.json({
+  const manifest = {
     url: origin,
     name: 'PackPulse',
     iconUrl: `${origin}/tonconnect-icon.svg`,
     termsOfUseUrl: origin,
     privacyPolicyUrl: origin,
-  })
+  }
+  
+  console.log('[DEBUG] Serving manifest:', JSON.stringify(manifest, null, 2))
+  res.json(manifest)
 })
 
 app.get('/api/diag/getgems', async (req, res) => {
