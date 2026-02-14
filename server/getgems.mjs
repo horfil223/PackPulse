@@ -115,6 +115,30 @@ export function createGetgemsClient(arg) {
     return Number.isFinite(num) ? num : null
   }
 
+  function pickSalePriceNano(item) {
+    const sale = item?.sale ?? null
+    const raw = sale?.fullPrice ?? sale?.full_price ?? sale?.price ?? sale?.full_price_nano ?? null
+    const num = Number(raw)
+    return Number.isFinite(num) ? num : null
+  }
+
+  function cleanUrl(value) {
+    if (typeof value !== 'string') return null
+    const trimmed = value.trim().replace(/`/g, '')
+    return trimmed ? trimmed : null
+  }
+
+  function pickItemImageUrl(item) {
+    return (
+      cleanUrl(item?.imageSizes?.['352']) ??
+      cleanUrl(item?.imageSizes?.['96']) ??
+      cleanUrl(item?.image) ??
+      cleanUrl(item?.preview) ??
+      cleanUrl(item?.icon) ??
+      null
+    )
+  }
+
   function median(nums) {
     const arr = nums.filter((n) => Number.isFinite(n)).slice().sort((a, b) => a - b)
     if (!arr.length) return null
@@ -139,6 +163,10 @@ export function createGetgemsClient(arg) {
 
     async getCollectionNfts(collectionAddress, { after, limit } = {}) {
       return get(`/v1/nfts/collection/${collectionAddress}`, { after, limit })
+    },
+
+    async getNftsOffchainOnSale(collectionAddress, { after, limit } = {}) {
+      return get(`/v1/nfts/offchain/on-sale/${collectionAddress}`, { after, limit })
     },
 
     async getCollectionHistory(collectionAddress, { minTime, maxTime, after, limit, types, reverse } = {}) {
@@ -168,6 +196,35 @@ export function createGetgemsClient(arg) {
 
     async getCollectionBasicInfo(collectionAddress) {
       return get(`/v1/collection/basic-info/${collectionAddress}`)
+    },
+
+    async getCollectionLiveFloor(collectionAddress, { limit } = {}) {
+      const scanLimit = Number(limit || 10)
+      let bestPriceNano = null
+      let bestImage = null
+
+      const sources = [
+        async () => this.getNftsOnSale(collectionAddress, { limit: scanLimit }),
+        async () => this.getNftsOffchainOnSale(collectionAddress, { limit: scanLimit }),
+      ]
+
+      for (const load of sources) {
+        try {
+          const page = await load()
+          const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
+          for (const item of items) {
+            const p = pickSalePriceNano(item)
+            if (p !== null && (bestPriceNano === null || p < bestPriceNano)) bestPriceNano = p
+            if (!bestImage) bestImage = pickItemImageUrl(item)
+          }
+          if (bestPriceNano !== null) break
+        } catch {}
+      }
+
+      return {
+        floorTon: bestPriceNano === null ? null : bestPriceNano / 1e9,
+        sampleImage: bestImage,
+      }
     },
 
     async testConnection() {

@@ -29,6 +29,12 @@ app.use(
 
 let getgems = null
 
+function cleanUrl(value) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim().replace(/`/g, '')
+  return trimmed ? trimmed : null
+}
+
 function ensureGetgems() {
   if (!getgems) {
     if (!process.env.GETGEMS_API_KEY) {
@@ -165,7 +171,7 @@ app.get('/api/market/stickerpacks', async (req, res) => {
         const page = await gg.getCollectionNfts(c.collectionAddress, { limit: 1 })
         const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
         const first = items[0]
-        const img = first?.image ?? first?.preview ?? first?.icon ?? null
+        const img = cleanUrl(first?.imageSizes?.['352']) ?? cleanUrl(first?.imageSizes?.['96']) ?? cleanUrl(first?.image) ?? cleanUrl(first?.preview) ?? cleanUrl(first?.icon) ?? null
         if (img) c.sampleImage = img
       } catch {}
     }
@@ -181,7 +187,24 @@ app.get('/api/market/stickerpacks', async (req, res) => {
 
         if (typeof info?.floor === 'number') c.floorTon = info.floor
         if (typeof info?.name === 'string') c.displayName = info.name
-        if (!c.sampleImage && typeof info?.image_url === 'string') c.sampleImage = info.image_url
+        if (!c.sampleImage && typeof info?.image_url === 'string') c.sampleImage = cleanUrl(info.image_url)
+      } catch {}
+    }
+
+    const liveCache = new Map()
+    for (const c of pageItems.slice(0, 20)) {
+      try {
+        let live = liveCache.get(c.collectionAddress) ?? null
+        if (!live) {
+          live = await gg.getCollectionLiveFloor(c.collectionAddress, { limit: 10 })
+          liveCache.set(c.collectionAddress, live)
+        }
+        if (typeof live?.floorTon === 'number' && Number.isFinite(live.floorTon) && live.floorTon > 0) {
+          const base = typeof c.floorTon === 'number' && Number.isFinite(c.floorTon) && c.floorTon > 0 ? c.floorTon : null
+          const shouldReplace = base === null ? true : Math.abs(live.floorTon - base) / base > 0.15
+          if (shouldReplace) c.floorTon = live.floorTon
+        }
+        if (!c.sampleImage && typeof live?.sampleImage === 'string') c.sampleImage = cleanUrl(live.sampleImage)
       } catch {}
     }
 
@@ -261,11 +284,25 @@ app.get('/api/portfolio/:address', async (req, res) => {
     const collectionsResult = []
     let totalFloorTon = null
     let totalAvgSoldTon = null
+    let liveChecked = 0
     for (const [addr, group] of byCollection) {
       const count = group.items.length
-      const floor = group.stats?.floorTon ?? group.info?.floor ?? null
+      let floor = group.stats?.floorTon ?? group.info?.floor ?? null
       const avg = group.stats?.avgSoldTon ?? null
       const median = group.stats?.medianSoldTon ?? null
+
+      if (addr !== 'unknown' && liveChecked < 25) {
+        liveChecked += 1
+        try {
+          const live = await gg.getCollectionLiveFloor(addr, { limit: 10 })
+          if (typeof live?.floorTon === 'number' && Number.isFinite(live.floorTon) && live.floorTon > 0) {
+            const base = typeof floor === 'number' && Number.isFinite(floor) && floor > 0 ? floor : null
+            const shouldReplace = base === null ? true : Math.abs(live.floorTon - base) / base > 0.15
+            if (shouldReplace) floor = live.floorTon
+          }
+          if (!group.image && typeof live?.sampleImage === 'string') group.image = cleanUrl(live.sampleImage)
+        } catch {}
+      }
 
       const valueFloor = floor === null ? null : count * floor
       const valueAvg = avg === null ? null : count * avg
@@ -278,7 +315,7 @@ app.get('/api/portfolio/:address', async (req, res) => {
       collectionsResult.push({
         collectionAddress: addr,
         sampleName: group.name,
-        sampleImage: group.image ?? group.items[0]?.image ?? null,
+        sampleImage: cleanUrl(group.image) ?? cleanUrl(group.items[0]?.imageSizes?.['352']) ?? cleanUrl(group.items[0]?.image) ?? null,
         count,
         floorTon: floor,
         avgSoldTon: avg,
