@@ -198,8 +198,6 @@ app.get('/api/portfolio/:address', async (req, res) => {
     // But wait, our simple client uses GraphQL or internal API emulation.
     // Let's implement a simple "getUserStickers" in our client
     
-    const stickerCollections = await gg.getStickerCollectionsSet()
-
     let marketCollections = gg.getUniqueCollections()
     if (marketCollections.size === 0) {
       await gg.scanMarketHistory(3)
@@ -207,10 +205,9 @@ app.get('/api/portfolio/:address', async (req, res) => {
     }
 
     const allItems = await gg.getUserStickers(address)
-    const items = allItems.filter((item) => {
-      const collectionAddress = item?.collectionAddress ?? null
-      return Boolean(collectionAddress) && stickerCollections.has(collectionAddress)
-    })
+    const targetCollections = new Set(allItems.map((x) => x?.collectionAddress ?? null).filter(Boolean))
+    const stickerCollections = await gg.findStickerCollections(targetCollections)
+    const items = allItems.filter((item) => stickerCollections.has(item?.collectionAddress ?? ''))
     
     // 2. Group by collection
     const byCollection = new Map()

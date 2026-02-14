@@ -19,35 +19,52 @@ export function createGetgemsClient(arg) {
     },
   })
 
-  async function get(path, params) {
+  function shouldRetry(err) {
+    const status = err?.response?.status
+    if (status === 429) return true
+    if (status === 500 || status === 502 || status === 503 || status === 504) return true
+    const code = err?.code
+    if (code === 'ETIMEDOUT' || code === 'ECONNRESET' || code === 'EAI_AGAIN') return true
+    return false
+  }
+
+  function formatHint(data) {
+    if (!data) return null
+    if (typeof data?.error === 'string') return data.error
+    if (typeof data?.message === 'string') return data.message
+    if (typeof data === 'string') return data.slice(0, 400)
     try {
-      const res = await http.get(path, { params })
-      if (!res.data?.success) {
-        const hint =
-          typeof res.data?.error === 'string'
-            ? res.data.error
-            : typeof res.data?.message === 'string'
-              ? res.data.message
-              : null
-        throw new Error(hint ? `Getgems error for ${path}: ${hint}` : `Getgems API error for ${path}`)
+      return JSON.stringify(data).slice(0, 400)
+    } catch {
+      return null
+    }
+  }
+
+  async function get(path, params) {
+    const delaysMs = [250, 800, 1600]
+    for (let attempt = 0; attempt < delaysMs.length + 1; attempt++) {
+      try {
+        const res = await http.get(path, { params })
+        if (!res.data?.success) {
+          const hint = formatHint(res.data)
+          throw new Error(hint ? `Getgems error for ${path}: ${hint}` : `Getgems API error for ${path}`)
+        }
+        return res.data.response
+      } catch (e) {
+        if (attempt < delaysMs.length && shouldRetry(e)) {
+          await new Promise((r) => setTimeout(r, delaysMs[attempt]))
+          continue
+        }
+
+        if (!e?.response) throw e
+        const status = e?.response?.status
+        const data = e?.response?.data
+        const hint = formatHint(data)
+        const msg = hint ? `Getgems ${status ?? ''} ${path}: ${hint}`.trim() : `Getgems ${status ?? ''} request failed ${path}`.trim()
+        const err = new Error(msg)
+        err.response = e?.response
+        throw err
       }
-      return res.data.response
-    } catch (e) {
-      if (!e?.response) throw e
-      const status = e?.response?.status
-      const data = e?.response?.data
-      const hint =
-        typeof data?.error === 'string'
-          ? data.error
-          : typeof data?.message === 'string'
-            ? data.message
-            : typeof data === 'string'
-              ? data
-              : null
-      const msg = hint ? `Getgems ${status ?? ''} ${path}: ${hint}`.trim() : `Getgems request failed ${path}`
-      const err = new Error(msg)
-      err.response = e?.response
-      throw err
     }
   }
 
@@ -302,6 +319,29 @@ export function createGetgemsClient(arg) {
 
       state.stickerCollections = { fetchedAtMs: now, set }
       return set
+    },
+
+    async findStickerCollections(targetAddresses) {
+      const targets = new Set(Array.isArray(targetAddresses) ? targetAddresses : [...(targetAddresses ?? [])])
+      targets.delete(null)
+      targets.delete(undefined)
+      targets.delete('unknown')
+      if (targets.size === 0) return new Set()
+
+      const found = new Set()
+      let cursor = undefined
+      for (let i = 0; i < 50; i++) {
+        const page = await this.getStickerCollections({ cursor, limit: 200 })
+        const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
+        for (const c of items) {
+          const address = c?.address ?? c?.collectionAddress ?? c?.contract_address ?? null
+          if (address && targets.has(address)) found.add(address)
+        }
+        if (found.size === targets.size) break
+        cursor = getNextCursor(page)
+        if (!cursor || !items.length) break
+      }
+      return found
     },
   }
 }
