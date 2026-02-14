@@ -221,8 +221,6 @@ app.get('/api/portfolio/:address', async (req, res) => {
     
     // 2. Group by collection
     const byCollection = new Map()
-    let totalFloorTon = 0
-    let totalAvgSoldTon = 0
     
     const collectionInfoCache = new Map()
 
