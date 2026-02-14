@@ -183,6 +183,10 @@ export function createGetgemsClient(arg) {
     },
 
     async scanMarketHistory(limitPages = 5) {
+      state.collections.clear()
+      state.stats.pagesScanned = 0
+      state.stats.eventsScanned = 0
+
       let after = undefined
       for (let i = 0; i < Number(limitPages || 0); i++) {
         const page = await this.getStickersHistory({ after, limit: 100 })
