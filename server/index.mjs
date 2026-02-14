@@ -18,14 +18,9 @@ let getgems = null
 function ensureGetgems() {
   if (!getgems) {
     if (!process.env.GETGEMS_API_KEY) {
-      console.error('[ERROR] GETGEMS_API_KEY is missing in env vars!')
-      // Fallback to hardcoded key as last resort to fix "missing key" error on hosting
-      const fallbackKey = '1770934906034-mainnet-10064163-r-ftnxQLIpgCUcTJqczg6xTYakGitebhSnUywtziazcd1yz0HX'
-      console.log('[INFO] Using fallback API key')
-      getgems = createGetgemsClient(fallbackKey)
-      return getgems
+      throw new Error('GETGEMS_API_KEY is missing')
     }
-    getgems = createGetgemsClient(process.env.GETGEMS_API_KEY)
+    getgems = createGetgemsClient({ apiKey: process.env.GETGEMS_API_KEY })
   }
   return getgems
 }
@@ -34,15 +29,21 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true })
 })
 
+app.get('/api/diag/env', (req, res) => {
+  const value = process.env.GETGEMS_API_KEY
+  res.json({
+    ok: true,
+    hasGetgemsApiKey: Boolean(value),
+    getgemsApiKeyLength: typeof value === 'string' ? value.length : 0,
+  })
+})
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
   res.header('Access-Control-Allow-Methods', 'GET,OPTIONS')
   res.header('Access-Control-Allow-Headers', 'Content-Type')
   next()
 })
-
-// Serve static files from the React app build directory
-app.use(express.static(path.join(__dirname, '../dist')))
 
 // Serve manifest directly at root for easier access
 // Updated: Force HTTPS for cloud hosting to prevent 404
