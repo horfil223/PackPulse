@@ -170,6 +170,16 @@ app.get('/api/market/stickerpacks', async (req, res) => {
       } catch {}
     }
 
+    const needFloor = pageItems.filter((c) => c.floorTon === null || c.floorTon === undefined).slice(0, 20)
+    for (const c of needFloor) {
+      try {
+        const info = await gg.getCollectionBasicInfo(c.collectionAddress)
+        if (typeof info?.floor === 'number') c.floorTon = info.floor
+        if (!c.displayName && typeof info?.name === 'string') c.displayName = info.name
+        if (!c.sampleImage && typeof info?.image_url === 'string') c.sampleImage = info.image_url
+      } catch {}
+    }
+
     res.json({
       ok: true,
       collections: pageItems,
@@ -235,6 +245,7 @@ app.get('/api/portfolio/:address', async (req, res) => {
           collectionAddress: colAddr,
           name: info?.name ?? 'Unknown Collection',
           image: info?.image_url ?? null,
+          info,
           items: [],
           stats: marketStats
         })
@@ -245,18 +256,21 @@ app.get('/api/portfolio/:address', async (req, res) => {
     
     // 3. Calculate portfolio value
     const collectionsResult = []
+    let totalFloorTon = null
+    let totalAvgSoldTon = null
     for (const [addr, group] of byCollection) {
       const count = group.items.length
-      const floor = group.stats?.floorTon || 0
-      const avg = group.stats?.avgSoldTon || 0
-      const median = group.stats?.medianSoldTon || 0
-      
-      const valueFloor = count * floor
-      const valueAvg = count * avg // or median
-      const valueMedian = count * median
+      const floor = group.stats?.floorTon ?? group.info?.floor ?? null
+      const avg = group.stats?.avgSoldTon ?? null
+      const median = group.stats?.medianSoldTon ?? null
 
-      totalFloorTon += valueFloor
-      totalAvgSoldTon += valueMedian || valueAvg // Prefer median for portfolio value
+      const valueFloor = floor === null ? null : count * floor
+      const valueAvg = avg === null ? null : count * avg
+      const valueMedian = median === null ? null : count * median
+
+      if (valueFloor !== null) totalFloorTon = (totalFloorTon ?? 0) + valueFloor
+      const picked = valueMedian ?? valueAvg
+      if (picked !== null) totalAvgSoldTon = (totalAvgSoldTon ?? 0) + picked
 
       collectionsResult.push({
         collectionAddress: addr,
@@ -269,13 +283,13 @@ app.get('/api/portfolio/:address', async (req, res) => {
         valueFloorTon: valueFloor,
         valueAvgSoldTon: valueAvg,
         valueMedianSoldTon: valueMedian,
-        salesCount: group.stats?.salesCount,
-        lastSoldAt: group.stats?.lastSoldAt
+        salesCount: group.stats?.salesCount ?? group.info?.sales_count ?? null,
+        lastSoldAt: group.stats?.lastSoldAt ?? null
       })
     }
     
     // Sort by value desc
-    collectionsResult.sort((a, b) => b.valueFloorTon - a.valueFloorTon)
+    collectionsResult.sort((a, b) => (b.valueFloorTon ?? -1) - (a.valueFloorTon ?? -1))
 
     res.json({
       ok: true,
