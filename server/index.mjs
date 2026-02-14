@@ -37,6 +37,7 @@ app.use((req, res, next) => {
 })
 
 // Serve manifest directly at root for easier access
+// Updated: Force HTTPS for cloud hosting to prevent 404
 app.get('/tonconnect-manifest.json', (req, res) => {
   console.log('[DEBUG] Manifest requested')
   console.log('Headers:', JSON.stringify(req.headers, null, 2))
