@@ -307,7 +307,7 @@ export function createGetgemsClient(arg) {
       const set = new Set()
       let cursor = undefined
       for (let i = 0; i < 50; i++) {
-        const page = await this.getStickerCollections({ cursor, limit: 200 })
+        const page = await this.getStickerCollections({ cursor, limit: 100 })
         const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
         for (const c of items) {
           const address = c?.address ?? c?.collectionAddress ?? c?.contract_address ?? null
@@ -331,7 +331,7 @@ export function createGetgemsClient(arg) {
       const found = new Set()
       let cursor = undefined
       for (let i = 0; i < 50; i++) {
-        const page = await this.getStickerCollections({ cursor, limit: 200 })
+        const page = await this.getStickerCollections({ cursor, limit: 100 })
         const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
         for (const c of items) {
           const address = c?.address ?? c?.collectionAddress ?? c?.contract_address ?? null
