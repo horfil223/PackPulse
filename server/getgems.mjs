@@ -163,14 +163,25 @@ export function createGetgemsClient(arg) {
         state.stats.eventsScanned += items.length
 
         for (const ev of items) {
-          const col = pickCollection(ev)
-          const address = col?.address ?? col?.collectionAddress ?? null
+          const address =
+            ev?.collectionAddress ??
+            ev?.collection_address ??
+            pickCollection(ev)?.address ??
+            pickCollection(ev)?.collectionAddress ??
+            null
           if (!address) continue
 
-          const name = col?.name ?? col?.title ?? null
-          const nft = pickNft(ev)
-          const image = nft?.image ?? nft?.preview ?? nft?.icon ?? null
-          const timeMs = pickTimeMs(ev)
+          const rawName = typeof ev?.name === 'string' ? ev.name : null
+          const name = rawName ? rawName.replace(/\s*#\d+$/, '') : null
+          const image = null
+          const timeMs =
+            typeof ev?.timestamp === 'number'
+              ? ev.timestamp
+              : typeof ev?.time === 'string'
+                ? Date.parse(ev.time)
+                : pickTimeMs(ev)
+
+          const eventType = ev?.typeData?.type ?? ev?.type ?? null
           const priceNano = pickPriceNano(ev)
 
           let entry = state.collections.get(address)
@@ -188,6 +199,7 @@ export function createGetgemsClient(arg) {
               oldestEventAt: null,
               totalEventsChecked: 0,
               _sold: [],
+              _list: [],
               _volumeNano: 0,
               _oldestMs: null,
               _latestMs: null,
@@ -206,9 +218,13 @@ export function createGetgemsClient(arg) {
           }
 
           if (priceNano !== null) {
-            entry.salesCount = (entry.salesCount ?? 0) + 1
-            entry._sold.push(priceNano / 1e9)
-            entry._volumeNano += priceNano
+            if (eventType === 'sold') {
+              entry.salesCount = (entry.salesCount ?? 0) + 1
+              entry._sold.push(priceNano / 1e9)
+              entry._volumeNano += priceNano
+            } else if (eventType === 'putUpForSale') {
+              entry._list.push(priceNano / 1e9)
+            }
           }
         }
 
@@ -218,6 +234,8 @@ export function createGetgemsClient(arg) {
 
       for (const entry of state.collections.values()) {
         const sold = entry._sold
+        const list = entry._list
+        entry.floorTon = list.length ? Math.min(...list) : null
         entry.volumeSoldTon = entry.salesCount ? entry._volumeNano / 1e9 : null
         entry.avgSoldTon = sold.length ? sold.reduce((a, b) => a + b, 0) / sold.length : null
         entry.medianSoldTon = median(sold)
@@ -225,6 +243,7 @@ export function createGetgemsClient(arg) {
         entry.oldestEventAt = entry._oldestMs !== null ? new Date(entry._oldestMs).toISOString() : null
 
         delete entry._sold
+        delete entry._list
         delete entry._volumeNano
         delete entry._oldestMs
         delete entry._latestMs
