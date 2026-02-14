@@ -6,12 +6,26 @@ import { createGetgemsClient } from './getgems.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const distDir = path.join(__dirname, '../dist')
 
 const app = express()
 app.use(express.json({ limit: '1mb' }))
 
-// Serve static files from the React app build directory
-app.use(express.static(path.join(__dirname, '../dist')))
+app.use(
+  '/assets',
+  express.static(path.join(distDir, 'assets'), {
+    immutable: true,
+    maxAge: '365d',
+    index: false,
+  }),
+)
+
+app.use(
+  express.static(distDir, {
+    index: false,
+    maxAge: '1h',
+  }),
+)
 
 let getgems = null
 
@@ -82,6 +96,7 @@ app.get('/tonconnect-manifest.json', (req, res) => {
     privacyPolicyUrl: origin,
   }
   
+  res.setHeader('Cache-Control', 'no-store')
   res.json(manifest)
 })
 
@@ -143,9 +158,21 @@ app.get('/api/market/stickerpacks', async (req, res) => {
     // Sort by sales count desc by default for API
     result.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0))
 
+    const pageItems = result.slice(0, limit)
+    const needImage = pageItems.filter((c) => !c.sampleImage).slice(0, 20)
+    for (const c of needImage) {
+      try {
+        const page = await gg.getCollectionNfts(c.collectionAddress, { limit: 1 })
+        const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
+        const first = items[0]
+        const img = first?.image ?? first?.preview ?? first?.icon ?? null
+        if (img) c.sampleImage = img
+      } catch {}
+    }
+
     res.json({
       ok: true,
-      collections: result.slice(0, limit),
+      collections: pageItems,
       source: {
         uniqueCollections: collections.size,
         pagesScanned: gg.stats.pagesScanned,
@@ -261,5 +288,6 @@ app.use('/api', (req, res) => {
 
 // Catch-all handler to serve the React app for any non-API routes
 app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'))
+  res.setHeader('Cache-Control', 'no-store')
+  res.sendFile(path.join(distDir, 'index.html'))
 })
