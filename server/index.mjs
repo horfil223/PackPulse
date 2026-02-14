@@ -170,12 +170,17 @@ app.get('/api/market/stickerpacks', async (req, res) => {
       } catch {}
     }
 
-    const needFloor = pageItems.filter((c) => c.floorTon === null || c.floorTon === undefined).slice(0, 20)
-    for (const c of needFloor) {
+    const infoCache = new Map()
+    for (const c of pageItems.slice(0, 50)) {
       try {
-        const info = await gg.getCollectionBasicInfo(c.collectionAddress)
+        let info = infoCache.get(c.collectionAddress) ?? null
+        if (!info) {
+          info = await gg.getCollectionBasicInfo(c.collectionAddress)
+          infoCache.set(c.collectionAddress, info)
+        }
+
         if (typeof info?.floor === 'number') c.floorTon = info.floor
-        if (!c.displayName && typeof info?.name === 'string') c.displayName = info.name
+        if (typeof info?.name === 'string') c.displayName = info.name
         if (!c.sampleImage && typeof info?.image_url === 'string') c.sampleImage = info.image_url
       } catch {}
     }
