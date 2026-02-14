@@ -57,6 +57,10 @@ export function createGetgemsClient(arg) {
       pagesScanned: 0,
       eventsScanned: 0,
     },
+    stickerCollections: {
+      fetchedAtMs: 0,
+      set: null,
+    },
   }
 
   function pickTimeMs(ev) {
@@ -108,16 +112,16 @@ export function createGetgemsClient(arg) {
   return {
     stats: state.stats,
 
-    async getOwnerNfts(ownerAddress, { after, limit } = {}) {
-      return get(`/v1/nfts/owner/${ownerAddress}`, { after, limit })
+    async getOwnerNfts(ownerAddress, { cursor, after, limit } = {}) {
+      return get(`/v1/nfts/owner/${ownerAddress}`, { cursor: cursor ?? after, limit })
     },
 
-    async getNftsOnSale(collectionAddress, { after, limit } = {}) {
-      return get(`/v1/nfts/on-sale/${collectionAddress}`, { after, limit })
+    async getNftsOnSale(collectionAddress, { cursor, after, limit } = {}) {
+      return get(`/v1/nfts/on-sale/${collectionAddress}`, { cursor: cursor ?? after, limit })
     },
 
-    async getCollectionNfts(collectionAddress, { after, limit } = {}) {
-      return get(`/v1/nfts/collection/${collectionAddress}`, { after, limit })
+    async getCollectionNfts(collectionAddress, { cursor, after, limit } = {}) {
+      return get(`/v1/nfts/collection/${collectionAddress}`, { cursor: cursor ?? after, limit })
     },
 
     async getCollectionHistory(collectionAddress, { minTime, maxTime, after, limit, types, reverse } = {}) {
@@ -125,20 +129,28 @@ export function createGetgemsClient(arg) {
       return get(`/v1/collection/history/${collectionAddress}`, {
         minTime,
         maxTime,
-        after,
+        cursor: after,
         limit,
         types: typesParam,
         reverse,
       })
     },
 
-    async getStickersHistory({ minTime, maxTime, after, limit, types, reverse } = {}) {
+    async getStickersHistory({ minTime, maxTime, cursor, after, limit, types, reverse } = {}) {
       const typesParam = Array.isArray(types) ? types.join(',') : types
-      return get('/v1/nfts/history/stickers', { minTime, maxTime, after, limit, types: typesParam, reverse })
+      return get('/v1/nfts/history/stickers', { minTime, maxTime, cursor: cursor ?? after, limit, types: typesParam, reverse })
     },
 
-    async getCollectionsTop({ after, limit } = {}) {
-      return get('/v1/collections/top', { after, limit })
+    async getCollectionsTop({ cursor, after, limit } = {}) {
+      return get('/v1/collections/top', { cursor: cursor ?? after, limit })
+    },
+
+    async getStickerCollections({ cursor, limit } = {}) {
+      return get('/v1/stickers/collections', { cursor, limit })
+    },
+
+    async getCollectionBasicInfo(collectionAddress) {
+      return get(`/v1/collection/basic-info/${collectionAddress}`)
     },
 
     async testConnection() {
@@ -258,15 +270,38 @@ export function createGetgemsClient(arg) {
 
     async getUserStickers(ownerAddress) {
       const items = []
-      let after = undefined
+      let cursor = undefined
       for (let i = 0; i < 50; i++) {
-        const page = await this.getOwnerNfts(ownerAddress, { after, limit: 100 })
+        const page = await this.getOwnerNfts(ownerAddress, { cursor, limit: 100 })
         const batch = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
         items.push(...batch)
-        after = getNextCursor(page)
-        if (!after || !batch.length) break
+        cursor = getNextCursor(page)
+        if (!cursor || !batch.length) break
       }
       return items
+    },
+
+    async getStickerCollectionsSet() {
+      const now = Date.now()
+      if (state.stickerCollections.set && now - state.stickerCollections.fetchedAtMs < 60 * 60 * 1000) {
+        return state.stickerCollections.set
+      }
+
+      const set = new Set()
+      let cursor = undefined
+      for (let i = 0; i < 50; i++) {
+        const page = await this.getStickerCollections({ cursor, limit: 200 })
+        const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
+        for (const c of items) {
+          const address = c?.address ?? c?.collectionAddress ?? c?.contract_address ?? null
+          if (address) set.add(address)
+        }
+        cursor = getNextCursor(page)
+        if (!cursor || !items.length) break
+      }
+
+      state.stickerCollections = { fetchedAtMs: now, set }
+      return set
     },
   }
 }

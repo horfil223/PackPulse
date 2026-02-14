@@ -198,22 +198,46 @@ app.get('/api/portfolio/:address', async (req, res) => {
     // But wait, our simple client uses GraphQL or internal API emulation.
     // Let's implement a simple "getUserStickers" in our client
     
-    const items = await gg.getUserStickers(address)
+    const stickerCollections = await gg.getStickerCollectionsSet()
+
+    let marketCollections = gg.getUniqueCollections()
+    if (marketCollections.size === 0) {
+      await gg.scanMarketHistory(3)
+      marketCollections = gg.getUniqueCollections()
+    }
+
+    const allItems = await gg.getUserStickers(address)
+    const items = allItems.filter((item) => {
+      const collectionAddress = item?.collectionAddress ?? null
+      return Boolean(collectionAddress) && stickerCollections.has(collectionAddress)
+    })
     
     // 2. Group by collection
     const byCollection = new Map()
     let totalFloorTon = 0
     let totalAvgSoldTon = 0
     
+    const collectionInfoCache = new Map()
+
     for (const item of items) {
-      const colAddr = item.collection?.address ?? 'unknown'
+      const colAddr = item?.collectionAddress ?? 'unknown'
       if (!byCollection.has(colAddr)) {
-        // Try to get stats for this collection from our market cache if available
         const marketStats = gg.getCollectionStats(colAddr)
-        
+        let info = null
+        if (colAddr !== 'unknown') {
+          info = collectionInfoCache.get(colAddr) ?? null
+          if (!info) {
+            try {
+              info = await gg.getCollectionBasicInfo(colAddr)
+              collectionInfoCache.set(colAddr, info)
+            } catch {}
+          }
+        }
+
         byCollection.set(colAddr, {
           collectionAddress: colAddr,
-          name: item.collection?.name ?? 'Unknown Collection',
+          name: info?.name ?? 'Unknown Collection',
+          image: info?.image_url ?? null,
           items: [],
           stats: marketStats
         })
@@ -240,7 +264,7 @@ app.get('/api/portfolio/:address', async (req, res) => {
       collectionsResult.push({
         collectionAddress: addr,
         sampleName: group.name,
-        sampleImage: group.items[0]?.image, // simple image pick
+        sampleImage: group.image ?? group.items[0]?.image ?? null,
         count,
         floorTon: floor,
         avgSoldTon: avg,
