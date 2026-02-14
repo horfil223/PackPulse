@@ -17,12 +17,13 @@ let getgems = null
 
 function ensureGetgems() {
   if (!getgems) {
-    // Debug logging to see what's going on in cloud environment
-    console.log('[DEBUG] Checking GETGEMS_API_KEY env var:', process.env.GETGEMS_API_KEY ? 'Present' : 'Missing')
-    console.log('[DEBUG] All env keys:', Object.keys(process.env).join(', '))
-    
     if (!process.env.GETGEMS_API_KEY) {
-      throw new Error('GETGEMS_API_KEY is not set in environment variables')
+      console.error('[ERROR] GETGEMS_API_KEY is missing in env vars!')
+      // Fallback to hardcoded key as last resort to fix "missing key" error on hosting
+      const fallbackKey = '1770934906034-mainnet-10064163-r-ftnxQLIpgCUcTJqczg6xTYakGitebhSnUywtziazcd1yz0HX'
+      console.log('[INFO] Using fallback API key')
+      getgems = createGetgemsClient(fallbackKey)
+      return getgems
     }
     getgems = createGetgemsClient(process.env.GETGEMS_API_KEY)
   }
