@@ -120,7 +120,11 @@ app.get('/api/market/stickerpacks', async (req, res) => {
     const mode = req.query.mode || 'active' // 'active' | 'full'
     
     // Get unique collections from our memory cache
-    const collections = gg.getUniqueCollections()
+    let collections = gg.getUniqueCollections()
+    if (collections.size === 0 && mode === 'active') {
+      await gg.scanMarketHistory(3)
+      collections = gg.getUniqueCollections()
+    }
     
     // If mode is 'active', we want only those that have sales in recent history
     // But since we store everything in memory now, we can just return all or filter
@@ -251,7 +255,11 @@ app.listen(port, () => {
   process.stdout.write(`API listening on http://localhost:${port}\n`)
 })
 
-// Catch-all handler to serve the React app for any unknown routes
-app.get(/.*/, (req, res) => {
+app.use('/api', (req, res) => {
+  res.status(404).json({ ok: false, error: 'Not found' })
+})
+
+// Catch-all handler to serve the React app for any non-API routes
+app.get(/^(?!\/api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'))
 })
