@@ -162,8 +162,8 @@ export function createGetgemsClient(arg) {
       return get('/v1/collections/top', { after, limit })
     },
 
-    async getStickerCollections({ cursor, limit } = {}) {
-      return get('/v1/stickers/collections', { cursor, limit })
+    async getStickerCollections({ after, limit } = {}) {
+      return get('/v1/stickers/collections', { after, limit })
     },
 
     async getCollectionBasicInfo(collectionAddress) {
@@ -305,16 +305,16 @@ export function createGetgemsClient(arg) {
       }
 
       const set = new Set()
-      let cursor = undefined
+      let after = undefined
       for (let i = 0; i < 50; i++) {
-        const page = await this.getStickerCollections({ cursor, limit: 100 })
+        const page = await this.getStickerCollections({ after, limit: 100 })
         const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
         for (const c of items) {
           const address = c?.address ?? c?.collectionAddress ?? c?.contract_address ?? null
           if (address) set.add(address)
         }
-        cursor = getNextCursor(page)
-        if (!cursor || !items.length) break
+        after = getNextCursor(page)
+        if (!after || !items.length) break
       }
 
       state.stickerCollections = { fetchedAtMs: now, set }
@@ -329,17 +329,17 @@ export function createGetgemsClient(arg) {
       if (targets.size === 0) return new Set()
 
       const found = new Set()
-      let cursor = undefined
+      let after = undefined
       for (let i = 0; i < 50; i++) {
-        const page = await this.getStickerCollections({ cursor, limit: 100 })
+        const page = await this.getStickerCollections({ after, limit: 100 })
         const items = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
         for (const c of items) {
           const address = c?.address ?? c?.collectionAddress ?? c?.contract_address ?? null
           if (address && targets.has(address)) found.add(address)
         }
         if (found.size === targets.size) break
-        cursor = getNextCursor(page)
-        if (!cursor || !items.length) break
+        after = getNextCursor(page)
+        if (!after || !items.length) break
       }
       return found
     },
