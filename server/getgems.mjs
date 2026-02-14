@@ -129,16 +129,16 @@ export function createGetgemsClient(arg) {
   return {
     stats: state.stats,
 
-    async getOwnerNfts(ownerAddress, { cursor, after, limit } = {}) {
-      return get(`/v1/nfts/owner/${ownerAddress}`, { cursor: cursor ?? after, limit })
+    async getOwnerNfts(ownerAddress, { after, limit } = {}) {
+      return get(`/v1/nfts/owner/${ownerAddress}`, { after, limit })
     },
 
-    async getNftsOnSale(collectionAddress, { cursor, after, limit } = {}) {
-      return get(`/v1/nfts/on-sale/${collectionAddress}`, { cursor: cursor ?? after, limit })
+    async getNftsOnSale(collectionAddress, { after, limit } = {}) {
+      return get(`/v1/nfts/on-sale/${collectionAddress}`, { after, limit })
     },
 
-    async getCollectionNfts(collectionAddress, { cursor, after, limit } = {}) {
-      return get(`/v1/nfts/collection/${collectionAddress}`, { cursor: cursor ?? after, limit })
+    async getCollectionNfts(collectionAddress, { after, limit } = {}) {
+      return get(`/v1/nfts/collection/${collectionAddress}`, { after, limit })
     },
 
     async getCollectionHistory(collectionAddress, { minTime, maxTime, after, limit, types, reverse } = {}) {
@@ -146,20 +146,20 @@ export function createGetgemsClient(arg) {
       return get(`/v1/collection/history/${collectionAddress}`, {
         minTime,
         maxTime,
-        cursor: after,
+        after,
         limit,
         types: typesParam,
         reverse,
       })
     },
 
-    async getStickersHistory({ minTime, maxTime, cursor, after, limit, types, reverse } = {}) {
+    async getStickersHistory({ minTime, maxTime, after, limit, types, reverse } = {}) {
       const typesParam = Array.isArray(types) ? types.join(',') : types
-      return get('/v1/nfts/history/stickers', { minTime, maxTime, cursor: cursor ?? after, limit, types: typesParam, reverse })
+      return get('/v1/nfts/history/stickers', { minTime, maxTime, after, limit, types: typesParam, reverse })
     },
 
-    async getCollectionsTop({ cursor, after, limit } = {}) {
-      return get('/v1/collections/top', { cursor: cursor ?? after, limit })
+    async getCollectionsTop({ after, limit } = {}) {
+      return get('/v1/collections/top', { after, limit })
     },
 
     async getStickerCollections({ cursor, limit } = {}) {
@@ -287,13 +287,13 @@ export function createGetgemsClient(arg) {
 
     async getUserStickers(ownerAddress) {
       const items = []
-      let cursor = undefined
+      let after = undefined
       for (let i = 0; i < 50; i++) {
-        const page = await this.getOwnerNfts(ownerAddress, { cursor, limit: 100 })
+        const page = await this.getOwnerNfts(ownerAddress, { after, limit: 100 })
         const batch = Array.isArray(page?.items) ? page.items : Array.isArray(page) ? page : []
         items.push(...batch)
-        cursor = getNextCursor(page)
-        if (!cursor || !batch.length) break
+        after = getNextCursor(page)
+        if (!after || !batch.length) break
       }
       return items
     },
